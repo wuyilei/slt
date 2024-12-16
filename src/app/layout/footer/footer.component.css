@@ -1,0 +1,8 @@
+.footer-global {
+  background-color: #272727;
+  padding: 4px 10px;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  color: white;
+}

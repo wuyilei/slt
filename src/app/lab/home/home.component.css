@@ -1,0 +1,113 @@
+.grid-container {
+  display: grid;
+  grid-template-columns: repeat(12, 1fr); /* 网格有3列 */
+  gap: 10px; /* 网格项之间的间隙 */
+}
+
+.grid-item {
+  text-align: left;
+}
+
+.well-tag {
+  border:solid 1px #333;
+  height:16px;
+  width:20px;
+}
+
+.well-tag-grp {
+  display: flex;
+  align-items: center;
+}
+
+.right-side-panel {
+  float: right;
+  position: fixed;
+  right: -1200px;
+  top: 0;
+  width: 1200px;
+  display: block;
+  background-color: #fff;
+  z-index: 9;
+  transition: right 0.3s ease;
+  box-shadow: 0 0 10px 0 rgba(0, 0, 0, 0.5);
+}
+
+.right-side-panel-open {
+  right: 0;
+}
+
+.right-side-panel-button {
+  position: absolute;
+  top: 20%;
+  left: -40px;
+  width: 40px;
+  height: 40px;
+  border: 0;
+  border-right: 1px solid rgb(23, 32, 43, 0.2);
+  background: #1890ff;
+  color: #fff;
+  cursor: pointer;
+}
+
+.right-side-panel-button-icon {
+  font-size: 25px;
+}
+
+@keyframes rotateArrowRight {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(180deg); }
+}
+@keyframes rotateArrowLeft {
+  from { transform: rotate(1800deg); }
+  to { transform: rotate(0deg); }
+}
+.arrowTurnRight {
+  animation: rotateArrowRight 0.3s linear;
+  animation-fill-mode: forwards; /* 保持最后一帧状态 */
+}
+.arrowTurnLeft {
+  animation: rotateArrowLeft 0.3s ease; /* 动画持续时间为0.3秒 */
+  animation-fill-mode: forwards;
+}
+
+/*96孔板样式*/
+.plate-top-buttons {
+  margin: 20px 40px 0 20px;
+  display: flex;
+  justify-content: space-between;
+  button {
+    padding: 4px 10px;
+    margin-left: 10px;
+    .fa-label {
+      margin-left: 5px;
+    }
+  }
+}
+.plate-container {
+  display: inline-grid;
+  grid-template-columns: repeat(12, 1fr); /* 12列 */
+  grid-template-rows: repeat(8, 1fr); /* 8行 */
+  border: 1px solid #333;
+  margin: 20px 0 100px 20px;
+  .plate-well {
+    border: 1px solid #333; /* 格子边框 */
+    box-sizing: border-box;
+    width: 96px;
+    min-height: 80px;
+  }
+  .plate-well:hover {
+    background-color: #ccc;
+  }
+  .plate-well-selected {
+    background-color: yellow; /* 选中的背景颜色 */
+    /* 其他选中样式 */
+  }
+}
+.plate-bottom-text {
+  margin: 20px 50px 0 20px;
+  display: flex;
+  justify-content: space-between;
+}
+.plate-well-small:hover {
+  fill: #ccc;
+}

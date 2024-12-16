@@ -1,0 +1,309 @@
+<nz-row id="board-list">
+  <div style="margin-top: 20px;">
+    <h2>96孔板列表</h2>
+
+    <div>
+      <span>选择日期范围</span>
+      <nz-range-picker [nzRanges]="plateDateRanges" ngModel (ngModelChange)="onBoardDatesChange($event)"
+        [(ngModel)]="selectedPlateDates" style="margin-left: 10px;" />
+
+      <span style="margin-left: 20px;">板状态筛选</span>
+
+      <nz-radio-group [(ngModel)]="selectedPlateStatus" style="margin-left: 10px;">
+        <label nz-radio nzValue="空板">空板</label>
+        <label nz-radio nzValue="已排版">已排版</label>
+        <label nz-radio nzValue="已提交">已提交</label>
+        <label nz-radio nzValue="完成实验">完成实验</label>
+      </nz-radio-group>
+
+    </div>
+
+    <nz-radio-group [(ngModel)]="selectedPlate" style="margin-top: 20px;" (click)="onPlateChange()">
+      <div class="grid-container">
+        <div *ngFor="let p of plates" class="grid-item">
+          <label nz-radio [nzValue]="p" (contextmenu)="plateContextMenu($event, plateMenu)">
+            <nz-dropdown-menu #plateMenu="nzDropdownMenu" id="plate-context-menu">
+              <ul nz-menu>
+                <li nz-menu-item (click)="showPlateInfoDlg($event, p.serial)">查看板详情</li>
+              </ul>
+            </nz-dropdown-menu>
+            {{ p.name }}
+          </label>
+        </div>
+
+        <nz-modal [(nzVisible)]="showPlateInfoModal" [nzFooter]="modalFooter" nzTitle="板详细信息">
+          <ng-container *nzModalContent>
+            <p>名称：{{selectedPlate?.name}}</p>
+            <p>序列号：{{selectedPlate?.serial}}</p>
+            <p>类型：{{selectedPlate?.type}}</p>
+            <p>状态：{{selectedPlate?.status}}</p>
+            <p>样品数：{{selectedPlate?.sample_num}}</p>
+          </ng-container>
+
+          <ng-template #modalFooter>
+            <button nz-button nzType="primary" (click)="closePlateInfoDlg()">确认</button>
+          </ng-template>
+        </nz-modal>
+      </div>
+    </nz-radio-group>
+  </div>
+
+  <div style="margin: 20px 20px 0 0; display: flex; align-items: center">
+    <div>
+      <h4 style="display: flex; justify-content: space-between">
+        <div>
+          实验板名称：{{selectedPlate?.name}}
+        </div>
+        <div>
+          编号：{{selectedPlate?.serial}}
+        </div>
+      </h4>
+      <!--<board-overview></board-overview>-->
+      <svg width="400" height="260" viewBox="0 0 400 260">
+        <!--横轴坐标-->
+        <text *ngFor="let idx of [0,1,2,3,4,5,6,7,8,9,10,11]" [attr.x]="idx*28+34" [attr.y]="16"
+          [innerHTML]="plate96x[idx]" style="fill: #333" />
+        <!--纵轴坐标-->
+        <text *ngFor="let idx of [0,1,2,3,4,5,6,7,8]" [attr.x]="8" [attr.y]="idx*28+46" [innerHTML]="plate96y[idx]"
+          style="fill: #333" />
+
+        <circle *ngFor="let w of wellArray" r="12" [attr.fill]="w.occupied?'#555':'#eee'" stroke="#333"
+          [attr.cx]="calcCenter96ByIdx(w.seat)[0]" [attr.cy]="calcCenter96ByIdx(w.seat)[1]"
+          [ngClass]="{'plate-well-small': w.occupied}" (click)="showSampleInfoDlg(w?.sample)" />
+      </svg>
+
+      <nz-modal [(nzVisible)]="showSampleInfoModal" [nzFooter]="sampleModalFooter" nzTitle="样品详细信息">
+        <ng-container *nzModalContent>
+          <p>名称：{{selectedSample4Info?.name}}</p>
+          <p>序列号：{{selectedSample4Info?.serial}}</p>
+          <p>送检人：{{selectedSample4Info?.client_name}}</p>
+          <p>地址：{{selectedSample4Info?.client_address}}</p>
+          <p>城市/地区：{{selectedSample4Info?.client_city}}</p>
+          <p>板坐标：{{selectedSample4Info?.board_location}}</p>
+          <nz-qrcode nzValue='{{selectedSample4Info?.serial}}'
+            nzIcon="https://img.alicdn.com/imgextra/i2/O1CN01TBIkzL1Nk3IBB0DLA_!!6000000001607-2-tps-106-120.png"
+            nzLevel="H"></nz-qrcode>
+        </ng-container>
+
+        <ng-template #sampleModalFooter>
+          <button nz-button nzType="primary" (click)="closeSampleInfoDlg()">确认</button>
+        </ng-template>
+      </nz-modal>
+
+      <div style="display: flex; justify-content: space-between">
+        <div>
+          排列方向：{{plateDirection === 'horizontal' ? '横向':'纵向'}}
+        </div>
+        <div style="color: #1890ff" (click)="showVideoDlg()">
+          一键识别样品状态
+        </div>
+      </div>
+
+      <nz-modal [(nzVisible)]="showVideoModal" [nzFooter]="videoModalFooter" nzWidth="50vw" nzTitle="演示视频">
+        <ng-container *nzModalContent>
+          <div>
+            <video #myVideo width="100%" controls>
+              <source src="assets/video/demo.mp4" type="video/mp4">
+              您的浏览器不支持 video 标签。
+            </video>
+          </div>
+        </ng-container>
+
+        <ng-template #videoModalFooter>
+          <button nz-button nzType="primary" (click)="closeVideoDlg()">确认</button>
+        </ng-template>
+      </nz-modal>
+
+    </div>
+
+    <div>
+      <div class="well-tag-grp">
+        <nz-tag [nzColor]="'#eee'" class="well-tag"></nz-tag>
+        <span>空孔</span>
+      </div>
+      <div class="well-tag-grp">
+        <nz-tag [nzColor]="'#555'" class="well-tag"></nz-tag>
+        <span>已填充</span>
+      </div>
+      <div class="well-tag-grp">
+        <nz-tag [nzColor]="'#FF7F7F'" class="well-tag"></nz-tag>
+        <span>无效</span>
+      </div>
+    </div>
+  </div>
+</nz-row>
+
+<nz-divider style="margin: 20px 0 5px 0" />
+
+<nz-row id="sample-list">
+  <div style="">
+    <h2>样品列表</h2>
+
+    <div style="display: flex; justify-content: space-between">
+      <div>
+        <span>选择日期范围</span>
+        <nz-range-picker [nzRanges]="sampleDateRanges" ngModel (ngModelChange)="onSampleDatesChange($event)"
+          [(ngModel)]="targetSampleDates" style="margin-left: 10px;" />
+
+        <span style="margin-left: 20px;">样品类型筛选</span>
+
+        <nz-radio-group [(ngModel)]="sampleType" style="margin-left: 10px;">
+          <label nz-radio nzValue="菌">菌</label>
+          <label nz-radio nzValue="人">人</label>
+          <label nz-radio nzValue="动物">动物</label>
+          <label nz-radio nzValue="植物">植物</label>
+        </nz-radio-group>
+      </div>
+
+      <div>
+        <button nz-button nzType="primary" (click)="downloadTemplate()">
+          <span nz-icon nzType="cloud-download" nzTheme="outline"></span>
+          <span class="fa-label">下载模版</span>
+        </button>
+
+        <button nz-button nzType="primary" (click)="fileUpload.click()" style="margin-left: 5px;">
+          <span nz-icon nzType="cloud-upload" nzTheme="outline"></span>
+          <span>批量导入</span>
+          <input type="file" style="display:none;" #fileUpload (change)="batchImport($event)" multiple="false" />
+        </button>
+
+        <nz-input-group nzSearch [nzAddOnAfter]="suffixIconButton" style="width: inherit; margin-left: 5px;">
+          <input type="text" nz-input placeholder="input search text" />
+        </nz-input-group>
+        <ng-template #suffixIconButton>
+          <button nz-button nzType="primary" nzSearch (click)="searchSample()"><span nz-icon
+              nzType="search"></span></button>
+        </ng-template>
+      </div>
+    </div>
+
+    <nz-table #basicTable nzSize="middle" [nzData]="samples" (nzCurrentPageDataChange)="onCurrentPageDataChange($event)"
+      style="width: 95vw;margin-top: 10px;">
+      <thead>
+        <tr>
+          <th [nzSelections]="listOfSelectedSample" [(nzChecked)]="checked" [nzIndeterminate]="indeterminate"
+            (nzCheckedChange)="onAllSampleChecked($event)"></th>
+          <th nzWidth="5%">样品名</th>
+          <th nzWidth="7%">序列号</th>
+          <th nzWidth="5%">样品量</th>
+          <th nzWidth="5%">类型</th>
+          <th nzWidth="5%">来源</th>
+          <th nzWidth="5%">状态</th>
+          <th nzWidth="7%">结果</th>
+          <th nzWidth="7%">设备</th>
+          <th nzWidth="6%">疾病</th>
+          <th nzWidth="7%">用户名</th>
+          <th nzWidth="15%">地址</th>
+          <th nzWidth="15%">地区</th>
+          <th nzWidth="5%">板位置</th>
+          <th nzWidth="5%">操作</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let s of basicTable.data">
+          <td [nzChecked]="s.id!=undefined && setOfCheckedId.has(s.id)"
+            (nzCheckedChange)="onSampleChecked(s.id, $event)"
+            [nzDisabled]="s.board_location!=undefined && s.board_location!=''"></td>
+          <td>{{s.name}}</td>
+          <td>{{s.serial}}</td>
+          <td>{{s.amount}}</td>
+          <td>{{s.type}}</td>
+          <td>{{s.source}}</td>
+          <td>{{s.status}}</td>
+          <td>{{s.result}}</td>
+          <td>{{s.instrument}}</td>
+          <td>{{s.disease}}</td>
+          <td>{{s.client_name}}</td>
+          <td>{{s.client_address}}</td>
+          <td>{{s.client_city}}</td>
+          <td>{{s.board_location}}</td>
+          <td>
+            <button nz-button nzType="primary" nzShape="circle" (click)="showSampleInfoDlg(s)">
+              <span nz-icon nzType="info" nzTheme="outline"></span>
+            </button>
+          </td>
+        </tr>
+      </tbody>
+    </nz-table>
+  </div>
+</nz-row>
+
+<aside id="right-sider" class="right-side-panel" [ngClass]="{'right-side-panel-open': isRightSidePanelOpen}">
+
+  <button class="right-side-panel-button" (click)="toggleRightPanel()">
+    <span nz-icon nzType="left-circle" nzTheme="outline" class="right-side-panel-button-icon"
+      [ngClass]="iconStyleClass"></span>
+  </button>
+
+  <div class="plate-top-buttons">
+    <div>
+      <button nz-button nzType="primary" (click)="add2Plate()">
+        <fa-icon [icon]="faEyedropper"></fa-icon>
+        <span class="fa-label">加样</span>
+      </button>
+
+      <button nz-button nzType="primary" nzDanger (click)="clearWell()">
+        <span nz-icon nzType="delete" nzTheme="outline"></span>
+        <span>删孔</span>
+      </button>
+
+      <button nz-button nzType="primary" nzDanger (click)="clearPlate()">
+        <span nz-icon nzType="clear" nzTheme="outline"></span>
+        <span>清空整板</span>
+      </button>
+    </div>
+
+    <div>
+      <button nz-button nzType="primary">
+        <span nz-icon nzType="save" nzTheme="outline"></span>
+        <span>保存</span>
+      </button>
+
+      <button nz-button nzType="primary">
+        <span nz-icon nzType="check-circle" nzTheme="outline"></span>
+        <span>提交</span>
+      </button>
+    </div>
+  </div>
+
+  <div class="plate-bottom-text">
+    <div>
+      <span>排列方向：</span>
+      <nz-radio-group [(ngModel)]="plateDirection">
+        <label nz-radio nzValue="horizontal">横向</label>
+        <label nz-radio nzValue="vertical">纵向</label>
+      </nz-radio-group>
+    </div>
+
+    <div>
+      <span>当前光标位置：{{selectedWell?selectedWell.coordinate:'未选择'}}</span>
+    </div>
+  </div>
+
+  <div style="overflow-y:scroll;height:100vh;">
+    <div class="plate-container" (contextmenu)="sampleContextMenu($event, sampleMenu)">
+      <nz-dropdown-menu #sampleMenu="nzDropdownMenu" id="right-sider-context-menu">
+        <ul nz-menu>
+          <li nz-menu-item (click)="selectAllWell($event, 'selectAll')">选中全部</li>
+          <li nz-menu-item (click)="clearAllWellSelection($event, 'clearAll')">清空所有选中</li>
+        </ul>
+      </nz-dropdown-menu>
+
+      <div class="plate-well" *ngFor="let w of wellArray" [ngClass]="{'plate-well-selected': w?.selected}"
+        (click)="toggleWellSelection(w)">
+        <!-- 方格内容 -->
+        <span>{{w?.coordinate}}</span>
+        <br />
+        <span>{{w?.sample?.name}}</span>
+        <br />
+        <span>{{w?.sample?.serial}}</span>
+        <br />
+        <span>{{w?.sample?.client_name}}</span>
+        <br />
+        <span>{{w?.sample?.client_city}}</span>
+      </div>
+    </div>
+
+  </div>
+
+</aside>
